@@ -1,0 +1,15 @@
+# 忽略整个文件夹
+#node_modules/
+#__pycache__/
+#build/
+
+# 忽略某个文件夹中的特定文件
+#logs/*.txt  # 忽略 logs 文件夹下的所有 .txt 文件
+
+
+
+**/model/
+**/__pycache__/
+*.pyc
+*.pyo
+

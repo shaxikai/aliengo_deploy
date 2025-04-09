@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Run play.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/play.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:/home/ww/robot/unitree_legged_sdk/lib/python/amd64"
+            }
+        }
+    ]
+}

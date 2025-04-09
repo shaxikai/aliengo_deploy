@@ -1,0 +1,72 @@
+
+#**************************************************************************
+
+# @file         aliengo.yaml
+# @author       Wei Wang -> shaxikai@outlook.com
+# @date         2025.4.1
+# @version      V1.0.0"
+# @brief        aliengo config file
+
+# "*************************************************************************
+
+
+model_path: "/home/ww/robot/HIMLoco-main/aliengo_deploy/model/policy.jit"
+device: "cuda:0"
+
+depth_enable: false
+controller_enable: true
+
+control_dt: 0.002
+policy_dt: 0.02
+depth_dt: 0.2
+
+kp: 40
+kd: 2
+
+obs_size: 45
+his_obs_num: 6
+depth_cam_cols: 640
+depth_cam_rows: 480
+depth_cam_fps: 30
+depth_dst_cols: 87
+depth_dst_rows: 58
+his_depth_num: 9
+
+policy_joint: [
+  FL_hip_joint, FL_thigh_joint, FL_calf_joint,
+  FR_hip_joint, FR_thigh_joint, FR_calf_joint,
+  RL_hip_joint, RL_thigh_joint, RL_calf_joint,
+  RR_hip_joint, RR_thigh_joint, RR_calf_joint
+]
+
+robot_joint: [
+  FR_hip_joint, FR_thigh_joint, FR_calf_joint,
+  FL_hip_joint, FL_thigh_joint, FL_calf_joint,
+  RR_hip_joint, RR_thigh_joint, RR_calf_joint,
+  RL_hip_joint, RL_thigh_joint, RL_calf_joint
+]
+
+dft_dof_pos:
+  FR_hip_joint: 0.0  
+  FR_thigh_joint: 0.8  
+  FR_calf_joint: -1.5
+  FL_hip_joint: 0.0  
+  FL_thigh_joint: 0.8  
+  FL_calf_joint: -1.5
+  RR_hip_joint: 0.0  
+  RR_thigh_joint: 0.8  
+  RR_calf_joint: -1.5
+  RL_hip_joint: 0.0  
+  RL_thigh_joint: 0.8  
+  RL_calf_joint: -1.5
+
+action_scale: 0.5
+vel_scale: 2.0
+gyr_scale: 0.25
+dof_pos_scale: 1.0
+dof_vel_scale: 0.05
+act_clip: 100.0
+obs_clip: 100.0
+hip_reduction: 1.0
+
+

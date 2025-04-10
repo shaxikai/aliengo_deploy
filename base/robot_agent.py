@@ -18,8 +18,8 @@ import numpy as np
 import cv2
 import robot_interface as sdk
 from utils import helpers
-from utils.controller import RCController
-from utils.realsense import RealSenseCamera
+from base.controller import RCController
+from base.realsense import RealSenseCamera
 
 class RobotAgent:
     def __init__(self, cfg):

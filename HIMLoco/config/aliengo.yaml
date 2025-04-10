@@ -10,7 +10,7 @@
 # "*************************************************************************
 
 
-model_path: "/home/ww/robot/HIMLoco-main/aliengo_deploy/model/policy.jit"
+model_path: "../model/policy.jit"
 device: "cuda:0"
 
 depth_enable: false
@@ -60,7 +60,7 @@ dft_dof_pos:
   RL_thigh_joint: 0.8  
   RL_calf_joint: -1.5
 
-action_scale: 0.5
+act_scale: 0.5
 vel_scale: 2.0
 gyr_scale: 0.25
 dof_pos_scale: 1.0

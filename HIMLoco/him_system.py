@@ -1,11 +1,11 @@
 '''
 **************************************************************************
 
-* @file         deploy.py
+* @file         him_deploy.py
 * @author       Wei Wang -> shaxikai@outlook.com
 * @date         2025.4.1
 * @version      V1.0.0"
-* @brief        run policy
+* @brief        him_deploy
 
 "*************************************************************************
 '''
@@ -15,21 +15,19 @@ import copy
 import torch
 import numpy as np
 
-from utils.config import Config
-from utils.robot_agent import RobotAgent
+from base.system import System
+from HIMLoco.him_config import HIMConfig
 
-class System:
+from base.robot_agent import RobotAgent
+
+class HIMSystem(System):
     def __init__(self, cfg_pn):
-    
-        cfg = Config(cfg_pn)
+        cfg = HIMConfig(cfg_pn)
         self.cfg = cfg
-        self.robot  = RobotAgent(cfg)
-        self.policy = self.load_policy()
+        super().__init__()
 
         self.dof_num = len(cfg["robot_joint"])
         self.act = np.zeros(self.dof_num, dtype=np.float32)
-
-
 
         self.his_obs_size = cfg["his_obs_num"] * cfg["obs_size"]
         self.his_obs = torch.zeros(self.his_obs_size, 
@@ -53,7 +51,7 @@ class System:
 
         def policy(obs):
             act = model.forward(obs['his_obs'].unsqueeze(0), obs['his_depth_obs'].unsqueeze(0))
-            return act
+            return act[0]
 
         return policy
 
@@ -62,18 +60,18 @@ class System:
         dt = self.cfg["policy_dt"]
 
         # print("reset robot [Press R1]")
-        # while not robot.get_ctr_state("R1_psd"):
+        # while not robot.get_ctr_state("up_psd"):
         #     time.sleep(0.01)
 
         self.robot_reset()
-        robot.set_ctr_state("R1_psd", False)
+        robot.set_ctr_state("up_psd", False)
 
         while True:
             # print("Unlock controller [Press R1]")
-            # while not robot.get_ctr_state("R1_psd"):
+            # while not robot.get_ctr_state("up_psd"):
             #     time.sleep(0.01)
 
-            robot.set_ctr_state("R1_psd", False)
+            robot.set_ctr_state("up_psd", False)
             obs = self.get_robot_obs()
 
             last_time = time.time()
@@ -87,10 +85,10 @@ class System:
                 last_time = cur_time
                 obs = self.get_robot_obs()
 
-                if robot.get_ctr_state("R1_psd") or not self.check_robot_sts():
-                    print("R1_pressed robot reset.")
+                if robot.get_ctr_state("up_psd") or not self.check_robot_sts():
+                    print("up_pressed robot reset.")
                     self.robot_reset()
-                    robot.set_ctr_state("R1_psd", False)
+                    robot.set_ctr_state("up_psd", False)
                     break
 
                 if not self.check_robot_sts():
@@ -174,11 +172,11 @@ class System:
         return cmd
     
     def act2joint(self, act):
-        act = act[0, :12].detach().cpu().numpy()
+        act = act.detach().cpu().numpy()
         act = np.clip(act, -self.cfg["act_clip"], self.cfg["act_clip"])
         self.act = act.copy()
 
-        act *= self.cfg["action_scale"]
+        act *= self.cfg["act_scale"]
         act[[0, 3, 6, 9]] *= self.cfg["hip_reduction"]
         jot_pos = self.cfg["dft_dof_pos"] + act[self.cfg["joint_idx_rob2pol"]]
         return jot_pos

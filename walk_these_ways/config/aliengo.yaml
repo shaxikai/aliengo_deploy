@@ -11,18 +11,18 @@
 
 
 model_path: [
-  "../model/ada_52507.jit",
-  "../model/body_52507.jit"
+  "../model/adaptation_module_latest.jit",
+  "../model/body_latest.jit"
 ]
 
 device: "cuda:0"
 
-depth_enable: false
+depth_enable: true
 controller_enable: true
 
 control_dt: 0.002
 policy_dt: 0.02
-depth_dt: 0.2
+depth_dt: 0.1
 
 kp: 40.0
 kd: 2.0
@@ -30,6 +30,15 @@ kd: 2.0
 cmd_size: 15
 obs_size: 70
 his_obs_num: 30
+
+depth_cam_cols: 640
+depth_cam_rows: 480
+depth_cam_fps: 30
+# depth_dst_cols: 87
+# depth_dst_rows: 58
+depth_dst_cols: 40
+depth_dst_rows: 30
+his_depth_num: 1
 
 policy_joint: [
   FL_hip_joint, FL_thigh_joint, FL_calf_joint,
@@ -46,30 +55,46 @@ robot_joint: [
 ]
 
 dft_dof_pos:
-  FR_hip_joint: 0.0  
+  FR_hip_joint: 0.0
   FR_thigh_joint: 0.8  
   FR_calf_joint: -1.5
-  FL_hip_joint: 0.0  
+  FL_hip_joint: 0.0
   FL_thigh_joint: 0.8  
   FL_calf_joint: -1.5
-  RR_hip_joint: 0.0  
-  RR_thigh_joint: 0.8  
+  RR_hip_joint: 0.0
+  RR_thigh_joint: 0.8
   RR_calf_joint: -1.5
-  RL_hip_joint: 0.0  
-  RL_thigh_joint: 0.8  
+  RL_hip_joint: 0.0
+  RL_thigh_joint: 0.8 
   RL_calf_joint: -1.5
 
-cmd_x_scale: 3.5
-cmd_y_scale: 0.6
-cmd_yaw_scale: 5.0
+ctrl_x_scale: 2.0
+ctrl_y_scale: 0.6
+ctrl_yaw_scale: 3.0
+
+cmd_x_scale: 2.0
+cmd_y_scale: 2.0
+cmd_yaw_scale: 0.25
+cmd_height_scale: 2.0
+cmd_freq_scale: 1.0
+cmd_phase_scale: 1.0
+cmd_footswing_scale: 0.15
+cmd_pitch_scale: 0.3
+cmd_roll_scale: 0.3
+cmd_stand_width_scale: 1.0
+cmd_stand_length_scale: 1.0
+cmd_aux_reward_scale: 1.0
 
 act_scale: 0.25
 vel_scale: 2.0
 gyr_scale: 0.25
 dof_pos_scale: 1.0
 dof_vel_scale: 0.05
-act_clip: 100.0
+act_clip: 10.0
 obs_clip: 100.0
 hip_reduction: 1.0
+
+cmd_freq_min: 1.5
+cmd_freq_max: 3.5
 
 

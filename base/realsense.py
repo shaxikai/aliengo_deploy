@@ -24,13 +24,31 @@ class RealSenseCamera:
         self.pipeline = rs.pipeline()
         self.config = rs.config()
 
+        self.depth_K = np.zeros((3, 3))
+        self.color_K = np.zeros((3, 3))
+
     def start_color_stream(self, width=640, height=480, fps=30):
         self.config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
         self.pipeline.start(self.config)
 
     def start_depth_stream(self, width=640, height=480, fps=30):
         self.config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
-        self.pipeline.start(self.config)
+        profile = self.pipeline.start(self.config)
+
+        # 获取深度流的内参
+        depth_profile = profile.get_stream(rs.stream.depth)
+        depth_intrinsics = depth_profile.as_video_stream_profile().get_intrinsics()
+
+        # 打印内参
+        self.depth_K = np.array([
+            [depth_intrinsics.fx, 0, depth_intrinsics.ppx],
+            [0, depth_intrinsics.fy, depth_intrinsics.ppy],
+            [0, 0, 1]
+        ])
+
+        print("depth K:")
+        print(self.depth_K)
+    
 
     def get_color(self):
         frames = self.pipeline.wait_for_frames()
@@ -48,6 +66,9 @@ class RealSenseCamera:
             print("Warning: Failed to get depth frame")
             return None
         return np.asanyarray(depth_frame.get_data())
+
+    def get_depth_intrinsics(self):
+        return self.depth_K
 
     def __del__(self):
         if hasattr(self, 'pipeline') and self.pipeline is not None:

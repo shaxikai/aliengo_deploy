@@ -10,8 +10,8 @@
 "*************************************************************************
 '''
 
+import sys
 import time
-import copy
 import torch
 import numpy as np
 
@@ -59,17 +59,17 @@ class HIMSystem(System):
         robot = self.robot
         dt = self.cfg["policy_dt"]
 
-        # print("reset robot [Press R1]")
-        # while not robot.get_ctr_state("up_psd"):
-        #     time.sleep(0.01)
+        print("reset robot [Press up]")
+        while not robot.get_ctr_state("up_psd"):
+            time.sleep(0.01)
 
         self.robot_reset()
         robot.set_ctr_state("up_psd", False)
 
         while True:
-            # print("Unlock controller [Press R1]")
-            # while not robot.get_ctr_state("up_psd"):
-            #     time.sleep(0.01)
+            print("Unlock controller [Press up]")
+            while not robot.get_ctr_state("up_psd"):
+                time.sleep(0.01)
 
             robot.set_ctr_state("up_psd", False)
             obs = self.get_robot_obs()
@@ -102,21 +102,59 @@ class HIMSystem(System):
                     robot.set_ctr_state("R2_psd", False)
                     return
 
-    def robot_reset(self):
+    def robot_reset(self, max_time: float = 5.0, control_freq: float = 20.0) -> bool:
+        """将机器人关节位置渐进复位到默认位置。
+        
+        Args:
+            max_time: 最大复位时间（秒），超时则终止。
+            control_freq: 控制频率（Hz），影响平滑度。
+        Returns:
+            bool: 是否成功复位（False表示超时或异常）。
+        """
+        # 1. 初始化参数
         robot = self.robot
         joint_pos = robot.get_dof_pos()
-        dft_dof_pos = self.cfg["dft_dof_pos"]
-
-        act_clip = 0.05
-        act_seq = []
+        dft_dof_pos = np.asarray(self.cfg["dft_dof_pos"])
+        dof_num = len(joint_pos)
+        
+        # 2. 计算复位参数
+        act_clip = 0.1  # 单步最大调整幅度（弧度）
         act = joint_pos - dft_dof_pos
-        while np.max(np.abs(act)) > 0.01:
-            act -= np.clip(act, -act_clip, act_clip)
-            act_seq.append(copy.deepcopy(act)) 
-
-        for act in act_seq:
-            robot.set_tar_dof_pos(act)
-            time.sleep(0.05)
+        act_max = np.max(np.abs(act))
+        num_steps = max(1, int(np.ceil(act_max / act_clip)))  # 至少1步
+        
+        # 3. 预分配控制指令（避免循环内重复创建）
+        motor_cmd = {
+            "q": np.zeros(dof_num),
+            "dq": np.zeros(dof_num),
+            "tau": np.zeros(dof_num),
+            "Kp": np.full(dof_num, 60.0),
+            "Kd": np.full(dof_num, 2.0)
+        }
+        
+        # 4. 渐进复位
+        start_time = time.time()
+        for step in range(num_steps):
+            # 超时检查
+            if time.time() - start_time > max_time:
+                print(f"RESET FAILED")
+                print(f"Reset timeout after {max_time}s")
+                sys.exit(1)
+            
+            # 计算插值位置
+            ratio = (step + 1) / num_steps
+            motor_cmd["q"] = joint_pos * (1 - ratio) + dft_dof_pos * ratio
+            
+            # 发送指令
+            robot.set_motor_cmd(motor_cmd)
+            time.sleep(1.0 / control_freq)
+        
+        # 5. 最终确认
+        # final_error = np.max(np.abs(robot.get_dof_pos() - dft_dof_pos))
+        # if final_error > 0.05:
+        #     print(f"RESET FAILED")
+        #     print(f"Max error: {final_error:.4f} rad (threshold: 0.05 rad)")
+        #     sys.exit(1)
 
     def get_robot_obs(self):
 
@@ -128,10 +166,12 @@ class HIMSystem(System):
         dof_vel = self.robot.get_dof_vel()
         act = self.act
 
-        dof_pos -= cfg["dft_dof_pos"]
         cmd[:2] *= cfg["vel_scale"]
         cmd[2]  *= cfg["gyr_scale"]
         gyr     *= cfg["gyr_scale"]
+        dof_pos -= cfg["dft_dof_pos"]
+        dof_pos  = dof_pos[cfg["joint_idx_rob2pol"]]
+        dof_vel  = dof_vel[cfg["joint_idx_rob2pol"]]
         dof_pos *= cfg["dof_pos_scale"]
         dof_vel *= cfg["dof_vel_scale"]
 
@@ -151,11 +191,16 @@ class HIMSystem(System):
 
         cur_time = time.time()
         if (cur_time - self.depth_time > cfg["depth_dt"]):
-            #depth = self.robot.get_depth()
-            depth = np.zeros((cfg["depth_dst_rows"], cfg["depth_dst_cols"]), dtype=np.float32)
+            depth = self.robot.get_depth()
             self.depth_time = cur_time
 
-            depth_tensor = torch.from_numpy(depth).float().flatten().to(cfg["torch_device"])
+            depth_tensor = torch.from_numpy(depth.astype(np.float32)).float().flatten().to(cfg["torch_device"])
+            # depth_tensor = torch.load("/home/nhy/Aliengo/aliengo_deploy/HIMLoco/data/depth.pt", map_location=cfg["torch_device"])
+            depth_tensor = depth_tensor.flatten()
+            
+            depth_tensor = depth_tensor.div_(1000)
+            depth_tensor[depth_tensor == -np.inf] = -6
+            depth_tensor[depth_tensor < -6] = -6
             depth_tensor.div_(6).add_(1)
 
             if self.first_depth:
@@ -168,7 +213,7 @@ class HIMSystem(System):
         return {'his_obs': self.his_obs, 'his_depth_obs': self.his_depth_obs}
 
     def get_robot_cmd(self):
-        cmd = np.array([1.0, 0.0, 0.0])
+        cmd = np.array([0.0, 0.0, 0.0])
         return cmd
     
     def act2joint(self, act):
@@ -178,7 +223,7 @@ class HIMSystem(System):
 
         act *= self.cfg["act_scale"]
         act[[0, 3, 6, 9]] *= self.cfg["hip_reduction"]
-        jot_pos = self.cfg["dft_dof_pos"] + act[self.cfg["joint_idx_rob2pol"]]
+        jot_pos = self.cfg["dft_dof_pos"] + act[self.cfg["joint_idx_pol2rob"]]
         return jot_pos
 
     def check_robot_sts(self):

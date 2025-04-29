@@ -9,6 +9,7 @@
 
 "*************************************************************************
 '''
+import os
 import sys
 import time
 import copy
@@ -51,40 +52,54 @@ class RobotAgent:
 
     def robot_cmt(self):
         LOWLEVEL = 0xff
-        udp = sdk.UDP(LOWLEVEL, 8080, "192.168.123.10", 8007)
+        TARGET_PORT = 8007
+        LOCAL_PORT = 8082
+        TARGET_IP = "192.168.123.10"   # target IP address
+
+        LOW_CMD_LENGTH = 610
+        LOW_STATE_LENGTH = 771
+
+        udp = sdk.UDP(LOCAL_PORT, TARGET_IP, TARGET_PORT, LOW_CMD_LENGTH, LOW_STATE_LENGTH, -1)
         safe = sdk.Safety(sdk.LeggedType.Aliengo)
+            
+        self.cmd = sdk.LowCmd()
+        self.state = sdk.LowState()
         udp.InitCmdData(self.cmd)
+        self.cmd.levelFlag = LOWLEVEL
+
+        udp.SetSend(self.cmd)
+        udp.Send()
 
         buff_idx = 0
         last_rpy = np.zeros(3)
         last_time = time.time()
 
         while True:
-            # try:
-            time.sleep(self.cfg["control_dt"])
-            udp.Recv()
-            udp.GetRecv(self.state)
+            try:
+                time.sleep(self.cfg["control_dt"])
+                udp.Recv()
+                udp.GetRecv(self.state)
 
-            if self.cfg["controller_enable"]:
-                self.ctr.update(self.state.wirelessRemote)
+                if self.cfg["controller_enable"]:
+                    self.ctr.update(self.state.wirelessRemote)
 
-            rpy = np.array(self.state.imu.rpy)
-            cur_time = time.time()
-            self.rpy_buff[buff_idx] = rpy - last_rpy
+                rpy = np.array(self.state.imu.rpy)
+                cur_time = time.time()
+                self.rpy_buff[buff_idx] = rpy - last_rpy
 
-            self.dt_buff[buff_idx] = cur_time - last_time
+                self.dt_buff[buff_idx] = cur_time - last_time
 
-            last_rpy, last_time = rpy, cur_time
-            buff_idx = (buff_idx + 1) % self.smt_len
+                last_rpy, last_time = rpy, cur_time
+                buff_idx = (buff_idx + 1) % self.smt_len
 
-            if self.cmd_flag:
-                safe.PositionLimit(self.cmd)
-                safe.PowerProtect(self.cmd, self.state, 1)
-                udp.SetSend(self.cmd)
-                udp.Send()
+                if self.cmd_flag:
+                    safe.PositionLimit(self.cmd)
+                    safe.PowerProtect(self.cmd, self.state, 9)
+                    udp.SetSend(self.cmd)
+                    udp.Send()
 
-            # except Exception as e:
-            #     print(f"[ERROR] robot_cmt Exception: {e}")
+            except Exception as e:
+                print(f"[ERROR] robot_cmt Exception: {e}")
 
     def set_tar_dof_pos(self, tar_dof_pos):
         self.cmd_flag = True
@@ -94,6 +109,27 @@ class RobotAgent:
             self.cmd.motorCmd[i].tau = 0.0
             self.cmd.motorCmd[i].Kp  = self.cfg["kp"]
             self.cmd.motorCmd[i].Kd  = self.cfg["kd"]
+
+    def set_motor_cmd(self, motor_cmd):
+        self.cmd_flag = True
+        q = motor_cmd["q"]
+        dq = motor_cmd["dq"]
+        tau = motor_cmd["tau"]
+        Kp = motor_cmd["Kp"]
+        Kd = motor_cmd["Kd"]
+
+        for i in range(len(self.cfg["robot_joint"])):
+            self.cmd.motorCmd[i].q = q[i]
+            self.cmd.motorCmd[i].dq  = dq[i]
+            self.cmd.motorCmd[i].tau = tau[i]
+            self.cmd.motorCmd[i].Kp  = Kp[i]
+            self.cmd.motorCmd[i].Kd  = Kd[i]
+
+    def get_tar_dof_pos(self):
+        return np.array(
+            [self.cmd.motorCmd[i].q for i in range(len(self.cfg["robot_joint"]))],
+            dtype=np.float32
+        )
 
     def get_grav(self):
         R = helpers.rpy2SO3(self.state.imu.rpy)
@@ -148,9 +184,4 @@ class RobotAgent:
             sys.exit(1)
 
         depth = self.cam.get_depth()
-        depth_resized = cv2.resize(
-            depth, 
-            (self.cfg["depth_dst_cols"], self.cfg["depth_dst_rows"]), 
-            interpolation=cv2.INTER_LINEAR
-        )
-        return depth_resized
+        return depth

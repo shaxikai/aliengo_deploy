@@ -1,16 +1,17 @@
 {
     "version": "0.2.0",
     "configurations": [
-        {
-            "name": "Python: Run him_play.py",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/him_play.py",
-            "console": "integratedTerminal",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}:/home/ww/robot/unitree_legged_sdk/lib/python/amd64"
-            }
-        },
+        // {
+        //     "name": "Python: Run him_play.py",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/scripts/him_play.py",
+        //     "console": "integratedTerminal",
+        //     "env": {
+        //         "PYTHONPATH": "${env:PYTHONPATH}:${workspaceFolder}:${workspaceFolder}/sdk/lib/python/amd64",
+        //         "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/sdk/lib/cpp/amd64"
+        //     }
+        // },
         {
             "name": "Python: Run wtw_play.py",
             "type": "python",
@@ -18,7 +19,8 @@
             "program": "${workspaceFolder}/scripts/wtw_play.py",
             "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}:/home/ww/robot/unitree_legged_sdk/lib/python/amd64"
+                "PYTHONPATH": "${env:PYTHONPATH}:${workspaceFolder}:${workspaceFolder}/sdk/lib/python/amd64",
+                "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/sdk/lib/cpp/amd64"
             }
         }
     ]

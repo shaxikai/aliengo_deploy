@@ -13,7 +13,7 @@
 model_path: "../model/policy.jit"
 device: "cuda:0"
 
-depth_enable: false
+depth_enable: true
 controller_enable: true
 
 control_dt: 0.002

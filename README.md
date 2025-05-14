@@ -1,7 +1,8 @@
 # ALIENGO_DEPLOY
 
 ## Brief Introduction
-Deployment Architecture for Reinforcement Learning-Based Control Using the Unitree SDK
+Deployment Architecture for Reinforcement Learning-Based Control Using the Unitree SDK.
+V1.0.0 version uses depth data from the RealSense D455 camera for obstacle avoidance.
 
 ## Environment
 Test environment: 

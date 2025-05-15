@@ -12,4 +12,7 @@
 **/__pycache__/
 *.pyc
 *.pyo   
-
+log/*
+data/*
+!log/.gitkeep
+!data/.gitkeep

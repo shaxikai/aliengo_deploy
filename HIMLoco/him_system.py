@@ -4,7 +4,7 @@
 * @file         him_deploy.py
 * @author       Wei Wang -> shaxikai@outlook.com
 * @date         2025.4.1
-* @version      V1.0.0"
+* @version      V1.1.0"
 * @brief        him_deploy
 
 "*************************************************************************

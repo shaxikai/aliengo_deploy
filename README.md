@@ -2,7 +2,8 @@
 
 ## Brief Introduction
 Deployment Architecture for Reinforcement Learning-Based Control Using the Unitree SDK.
-V1.0.0 version uses depth data from the RealSense D455 camera for obstacle avoidance.
+V1.1.0 version uses depth data from the RealSense D455 camera for obstacle avoidance.
+V1.1.0 version uses LiDAR data from the Livox MID360 for obstacle avoidance.
 
 ## Environment
 Test environment: 

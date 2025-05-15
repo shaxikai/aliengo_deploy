@@ -4,13 +4,12 @@
 * @file         him_deploy.py
 * @author       Wei Wang -> shaxikai@outlook.com
 * @date         2025.4.1
-* @version      V1.0.0"
+* @version      V1.1.0"
 * @brief        him_deploy
 
 "*************************************************************************
 '''
 
-import cv2
 import sys
 import time
 import math
@@ -68,21 +67,6 @@ class WTWSystem(System):
                                    device = cfg["device"], 
                                    requires_grad=False)
 
-        self.depth_time = time.time()
-        self.first_depth = True
-        self.depth_size = cfg["depth_dst_cols"] * cfg["depth_dst_rows"]
-        self.depth_his_size = cfg["his_depth_num"] * self.depth_size 
-        self.his_depth_obs = torch.zeros(self.depth_his_size, 
-                                         dtype=torch.float,
-                                         device= cfg["device"], 
-                                         requires_grad=False)
-
-        self.last_vxyt = np.array([1.0, 0.0, 0.0])
-        self.new_depth = False
-        self.turn_flag = False
-        self.sum_dis = 0.0
-        self.last_t = 0.0
-
         self.enable_obt = False
 
     def load_policy(self):
@@ -106,28 +90,27 @@ class WTWSystem(System):
         robot = self.robot
         dt = self.cfg["policy_dt"]
 
-        print("reset robot [Press up]")
-        while not robot.get_ctr_state("up_psd"):
-            time.sleep(0.01)
+        # print("reset robot [Press up]")
+        # while not robot.get_ctr_state("up_psd"):
+        #     time.sleep(0.01)
 
-        self.robot_reset()
-        robot.set_ctr_state("up_psd", False)
+        # self.robot_reset()
+        # robot.set_ctr_state("up_psd", False)
 
         while True:
-            print("Unlock controller [Press up]")
-            while not robot.get_ctr_state("up_psd"):
-                time.sleep(0.01)
+            # print("Unlock controller [Press up]")
+            # while not robot.get_ctr_state("up_psd"):
+            #     time.sleep(0.01)
 
-            robot.set_ctr_state("up_psd", False)
+            # robot.set_ctr_state("up_psd", False)
             obs = self.get_robot_obs()
 
             last_time = time.time()
             while True:
-                self.enable_dect()
+                # self.enable_dect()
 
-                #if 1:
-                if self.enable_obt:
-                    self.avoid_obstacles(obs)
+                # if self.enable_obt:
+                #     self.avoid_obstacles(obs)
 
                 act = self.policy(obs)
                 dof_pos = self.act2joint(act)
@@ -241,29 +224,7 @@ class WTWSystem(System):
         self.his_obs[:-cfg["obs_size"]] = self.his_obs[cfg["obs_size"]:].clone()
         self.his_obs[-cfg["obs_size"]:] = obs_tensor.clone()
 
-        cur_time = time.time()
-        if (cur_time - self.depth_time > cfg["depth_dt"]):
-            self.depth = self.robot.get_depth()
-            self.depth_time = cur_time
-            self.new_depth = True
-
-            # depth_tensor = torch.from_numpy(depth.astype(np.float32)).float().flatten().to(cfg["torch_device"])
-            # depth_tensor = torch.load("/home/nhy/Aliengo/aliengo_deploy/HIMLoco/data/depth.pt", map_location=cfg["torch_device"])
-            # depth_tensor = depth_tensor.flatten()
-            
-            # depth_tensor[depth_tensor == -np.inf] = -6
-            # depth_tensor = depth_tensor.div_(1000)
-            # depth_tensor[depth_tensor < -6] = -6
-            # depth_tensor.div_(6).add_(1)
-
-            # if self.first_depth:
-            #     self.first_depth = False
-            #     self.his_depth_obs[:] = depth_tensor.repeat(cfg["his_depth_num"])
-            # else:
-            #     self.his_depth_obs[:-self.depth_size] = self.his_depth_obs[self.depth_size:].clone()
-            #     self.his_depth_obs[-self.depth_size:] = depth_tensor 
-
-        return {'his_obs': self.his_obs, 'depth': self.depth}
+        return {'his_obs': self.his_obs}
 
     def get_robot_cmd(self):
         robot = self.robot
@@ -342,149 +303,6 @@ class WTWSystem(System):
 
     def avoid_obstacles(self, obs):
 
-        cfg = self.cfg
-        vx, vy, vt = 0.7, 0.0, 0.0
-        obs_tensor = obs["his_obs"][-cfg["obs_size"]:]
-        obs_tensor[3:6] = torch.tensor([vx, vy, vt], 
-                                       dtype=obs_tensor.dtype, 
-                                       device=cfg["torch_device"])
-
-        if 'depth' not in obs:
-            return obs
-        
-        if not self.new_depth:
-            obs_tensor[3:6] = torch.tensor(self.last_vxyt, 
-                                           dtype=obs_tensor.dtype, 
-                                           device=cfg["torch_device"])
-            return obs
-        
-        depth = np.copy(obs['depth'])
-        self.new_depth = False
-
-        # 显示深度图
-        depth_color = cv2.applyColorMap(cv2.convertScaleAbs(depth, alpha=0.03), cv2.COLORMAP_JET)
-        depth_color = np.flip(depth_color, axis=(0, 1))
-        cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
-        cv2.imshow('RealSense', depth_color)
-        cv2.waitKey(1)
-
-        depth = cv2.resize(
-            depth, 
-            (cfg["depth_dst_cols"], cfg["depth_dst_rows"]), 
-            interpolation=cv2.INTER_LINEAR
-        )
-
-        clip_cols = 2
-        depth = depth[:, clip_cols:-clip_cols]
-        depth = depth / 1000.0
-        depth[(depth<0.25) | (depth>6.0)] = 6.0
-        depth = cv2.GaussianBlur(depth, (3,3), 1.5)
-        depth = np.flip(depth, axis=(0, 1))
-        self.new_depth = False
-
-        zoom_factor = 16
-        depth_display = cv2.normalize(depth, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        depth_zoomed = cv2.resize(depth_display, None, fx=zoom_factor, fy=zoom_factor, interpolation=cv2.INTER_NEAREST)
-        cv2.imshow("Depth", depth_zoomed)
-        cv2.waitKey(1)
-
-        # 相机参数
-        K = self.robot.cam.get_depth_intrinsics()
-        col_scale = cfg["depth_dst_cols"] / cfg["depth_cam_cols"]
-        row_scale = cfg["depth_dst_rows"] / cfg["depth_cam_rows"]
-        fx, cx = K[0][0] * col_scale, K[0][2] * col_scale - clip_cols
-        fy, cy = K[1][1] * row_scale, K[1][2] * row_scale - clip_cols
-
-        # 深度图转点云
-        h, w = depth.shape
-        i, j = np.meshgrid(np.arange(w), np.arange(h))
-        z = depth
-        x = (i - cx) * z / fx
-        y = (j - cy) * z / fy
-        points = np.stack((x, y, z), axis=-1).reshape(-1, 3)
-
-        # 重力方向旋转对齐
-        grav = obs_tensor[0:3].cpu().numpy()
-        grav /= np.linalg.norm(grav)
-        dst_grav = np.array([0, 0, -1.0])
-        axis = np.cross(dst_grav, grav)
-        angle = np.arccos(np.clip(np.dot(dst_grav, grav), -1.0, 1.0))
-        if np.linalg.norm(axis) > 1e-6:
-            rotation = R.from_rotvec(axis / np.linalg.norm(axis) * angle)
-            points = rotation.apply(points)
-
-        # 记录原始点云
-        o3d.io.write_point_cloud("data/cloud.ply", o3d.geometry.PointCloud(o3d.utility.Vector3dVector(points)))
-
-        # 参数设置
-        vt_thd = 0.15
-        turn_dis_thd = 1.0
-        stop_dis_thd = 0.5
-        pass_width = 0.2
-        cell_scale = 0.05
-        pass_num = int(pass_width / cell_scale)
-        view_num = 20
-        view_scale = 0.5
-
-        l_obt, r_obt = np.full(pass_num, 6.0), np.full(pass_num, 6.0)
-        l_buff, r_buff = np.full(view_num, turn_dis_thd), np.full(view_num, turn_dis_thd)
-
-        # 遍历点云计算
-        filtered_pts = []
-        for pt in points:
-            x, y, z = pt
-            if y < -0.3 or y > 0.45:
-                continue
-            filtered_pts.append(pt)
-
-            angle_deg = np.degrees(np.arctan2(x, z))
-            idx_view = int(angle_deg * view_scale)
-            if abs(idx_view) >= view_num:
-                continue
-
-            dist = math.sqrt(pt[0] * pt[0] + pt[1] * pt[1] + pt[2] * pt[2])
-            dist = max(0.3, min(dist, turn_dis_thd))
-            if angle_deg <= 0:
-                l_buff[-idx_view] = min(l_buff[-idx_view], dist)
-            else:
-                r_buff[idx_view] = min(r_buff[idx_view], dist)
-
-            idx_pass = int(abs(x) / cell_scale)
-            if idx_pass >= pass_num:
-                continue
-
-            if x <= 0:
-                l_obt[idx_pass] = min(l_obt[idx_pass], z)
-            else:
-                r_obt[idx_pass] = min(r_obt[idx_pass], z)
-
-        # 记录筛选后点云
-        o3d.io.write_point_cloud("data/cloud1.ply", o3d.geometry.PointCloud(o3d.utility.Vector3dVector(filtered_pts)))
-
-        # 判断通行情况
-        pass_obt = np.concatenate((l_obt, r_obt))
-        print(pass_obt)
-        pass_obt_dis = pass_obt[np.argmin(pass_obt)]
-        l_dis = np.mean(l_buff)
-        r_dis = np.mean(r_buff)
-
-        # 决策逻辑
-        print(r_dis, l_dis)
-        if r_dis < turn_dis_thd and l_dis < turn_dis_thd:
-            vx = 0.0
-            vt = vt_thd
-        else:
-            if pass_obt_dis < turn_dis_thd:
-                v_ratio = (pass_obt_dis - stop_dis_thd) / (turn_dis_thd - stop_dis_thd)
-                vx *= v_ratio
-                vt = -vt_thd if r_dis > l_dis else vt_thd
-
-
-
-
-        self.last_vxyt = [vx, vy, vt]
-        obs_tensor[3:6] = torch.tensor(self.last_vxyt, dtype=obs_tensor.dtype, device=cfg["torch_device"])
-        
         return obs
 
     def enable_dect(self):

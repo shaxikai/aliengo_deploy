@@ -4,42 +4,61 @@
 # @file         aliengo.yaml
 # @author       Wei Wang -> shaxikai@outlook.com
 # @date         2025.4.1
-# @version      V1.0.0"
+# @version      V1.1.0"
 # @brief        aliengo config file
 
 # "*************************************************************************
 
+# system
+device: "cuda:0"
+depth_enable: false
+lidar_enable: true
+controller_enable: true
 
+host_ip: "192.168.1.50"
+multicast_ip: "224.1.1.5"
+
+# Execution frequency
+control_dt: 0.002
+policy_dt: 0.02
+depth_dt: 0.1
+
+# policy
 model_path: [
   "../model/adaptation_module_latest.jit",
   "../model/body_latest.jit"
 ]
 
-device: "cuda:0"
-
-depth_enable: true
-controller_enable: true
-
-control_dt: 0.002
-policy_dt: 0.02
-depth_dt: 0.1
-
-kp: 40.0
-kd: 2.0
-
 cmd_size: 15
 obs_size: 70
 his_obs_num: 30
 
-depth_cam_cols: 640
-depth_cam_rows: 480
-depth_cam_fps: 30
-# depth_dst_cols: 87
-# depth_dst_rows: 58
-depth_dst_cols: 40
-depth_dst_rows: 30
-his_depth_num: 1
+cmd_x_scale: 2.0
+cmd_y_scale: 2.0
+cmd_yaw_scale: 0.25
+cmd_height_scale: 2.0
+cmd_freq_scale: 1.0
+cmd_phase_scale: 1.0
+cmd_footswing_scale: 0.15
+cmd_pitch_scale: 0.3
+cmd_roll_scale: 0.3
+cmd_stand_width_scale: 1.0
+cmd_stand_length_scale: 1.0
+cmd_aux_reward_scale: 1.0
 
+act_scale: 0.25
+vel_scale: 2.0
+gyr_scale: 0.25
+dof_pos_scale: 1.0
+dof_vel_scale: 0.05
+act_clip: 10.0
+obs_clip: 100.0
+hip_reduction: 1.0
+
+
+# robot
+kp: 40.0
+kd: 2.0
 policy_joint: [
   FL_hip_joint, FL_thigh_joint, FL_calf_joint,
   FR_hip_joint, FR_thigh_joint, FR_calf_joint,
@@ -68,33 +87,31 @@ dft_dof_pos:
   RL_thigh_joint: 0.8 
   RL_calf_joint: -1.5
 
+# controller
 ctrl_x_scale: 2.0
 ctrl_y_scale: 0.6
 ctrl_yaw_scale: 3.0
-
-cmd_x_scale: 2.0
-cmd_y_scale: 2.0
-cmd_yaw_scale: 0.25
-cmd_height_scale: 2.0
-cmd_freq_scale: 1.0
-cmd_phase_scale: 1.0
-cmd_footswing_scale: 0.15
-cmd_pitch_scale: 0.3
-cmd_roll_scale: 0.3
-cmd_stand_width_scale: 1.0
-cmd_stand_length_scale: 1.0
-cmd_aux_reward_scale: 1.0
-
-act_scale: 0.25
-vel_scale: 2.0
-gyr_scale: 0.25
-dof_pos_scale: 1.0
-dof_vel_scale: 0.05
-act_clip: 10.0
-obs_clip: 100.0
-hip_reduction: 1.0
-
 cmd_freq_min: 1.5
 cmd_freq_max: 3.5
+
+# lidar
+lidar_name: "MID360"
+lidar_ipaddr: "192.168.1.150"     # can not change
+lidar_frame_dur: 0.099
+
+lidar_subnet_mask: ""
+lidar_gateway: ""
+lidar_cmd_data_port: 56100
+lidar_push_msg_port: 56200
+lidar_point_data_port: 56300
+lidar_imu_data_port: 56400
+lidar_log_data_port: 56500
+host_cmd_data_port: 56101
+host_push_msg_port: 56201
+host_point_data_port: 56301
+host_imu_data_port: 56401
+host_log_data_port: 56501
+
+
 
 

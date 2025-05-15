@@ -4,23 +4,21 @@
 * @file         robot_agent.py
 * @author       Wei Wang -> shaxikai@outlook.com
 * @date         2025.4.1
-* @version      V1.0.0"
+* @version      V1.1.0"
 * @brief        robot agent
 
 "*************************************************************************
 '''
-import os
 import sys
 import time
-import copy
 import threading
 import numpy as np
 
-import cv2
 import robot_interface as sdk
 from utils import helpers
 from base.controller import RCController
 from base.realsense import RealSenseCamera
+from base.livox_lidar import LivoxLidar
 
 class RobotAgent:
     def __init__(self, cfg):
@@ -37,6 +35,9 @@ class RobotAgent:
                 cfg["depth_cam_rows"], 
                 cfg["depth_cam_fps"]
             )
+
+        if cfg["lidar_enable"]:
+            self.lid = LivoxLidar(cfg)
 
         self.cmd = sdk.LowCmd()
         self.state = sdk.LowState()

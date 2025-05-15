@@ -4,7 +4,7 @@
 * @file         show_pcd.py
 * @author       Wei Wang -> shaxikai@outlook.com
 * @date         2025.4.23
-* @version      V1.0.0"
+* @version      V1.1.0"
 * @brief        show point cloud
 
 "*************************************************************************
